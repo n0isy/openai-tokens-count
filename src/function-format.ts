@@ -1,5 +1,8 @@
 import OpenAI from "openai";
 
+const IDENT_DEFAULT= 0;
+const IDENT_INCREMENT = 0;
+
 export function formatFunctionDefinitions(
   tools: OpenAI.ChatCompletionTool[],
 ): string {
@@ -15,7 +18,7 @@ export function formatFunctionDefinitions(
     const properties = p?.properties;
     if (properties && Object.keys(properties).length > 0) {
       lines.push(`type ${func?.name} = (_: {`);
-      lines.push(formatObjectProperties(p, 0));
+      lines.push(formatObjectProperties(p, IDENT_DEFAULT));
       lines.push("}) => any;");
     } else {
       lines.push(`type ${func?.name} = () => any;`);
@@ -61,7 +64,7 @@ function formatType(props: any, indent: number): string {
       }
       return "any[]";
     case "object":
-      return `{\n${formatObjectProperties(props, indent + 2)}\n${" ".repeat(indent)}}`;
+      return `{\n${formatObjectProperties(props, indent + IDENT_INCREMENT)}\n${" ".repeat(indent)}}`;
     case "integer":
     case "number":
       if ("enum" in props) {

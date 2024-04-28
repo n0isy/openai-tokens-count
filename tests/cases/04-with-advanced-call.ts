@@ -23,7 +23,7 @@ export default <OpenAI.Chat.ChatCompletionCreateParamsNonStreaming>{
                 long: { type: "string", description: "longitude" },
               },
             },
-            unit: { type: "string", enum: ["celsius", "fahrenheit"] },
+            unit: { type: "string", enum: ["celsius", "fahrenheit", "kelvin"] },
           },
           required: ["coords"],
         },
