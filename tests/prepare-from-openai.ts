@@ -12,10 +12,12 @@ async function prepareFromOpenAI() {
   for (const file of caseFiles) {
     if (file.endsWith('.ts')) {
       const casePath = path.join(casesDir, file);
+      console.log(casePath);
       const testCase = (await import(casePath)).default;
 
       const response = await openai.chat.completions.create(testCase);
       results[file] = response.usage?.prompt_tokens || 0;
+      console.log(response.usage, response.choices?.[0]?.message);
     }
   }
 
@@ -24,7 +26,7 @@ async function prepareFromOpenAI() {
 
 prepareFromOpenAI()
   .then((results) => {
-    const serverJsonPath = path.join(__dirname, 'server.json');
+    const serverJsonPath = path.join(__dirname, 'tokens.json');
     fs.writeFileSync(serverJsonPath, JSON.stringify(results, null, 2));
     console.log('Server JSON file created successfully.');
   })
