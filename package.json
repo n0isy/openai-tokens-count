@@ -15,6 +15,16 @@
     "lint": "prettier --check src tests",
     "makeTests": "ts-node tests/prepare-from-openai.ts"
   },
+  "keywords": [
+    "openai",
+    "token",
+    "count",
+    "estimation",
+    "function",
+    "calling",
+    "tools",
+    "titoken"
+  ],
   "author": {
     "email": "n0isy2011@gmail.com",
     "name": "Kirill Sabitov",
