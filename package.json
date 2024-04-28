@@ -1,6 +1,6 @@
 {
   "name": "openai-tokens-count",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "OpenAI tokens calculator with function calls, images, and messages in one call",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,7 +12,7 @@
     "build": "tsc",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build",
-    "lint": "prettier --check src tests",
+    "lint": "prettier -w --check src tests",
     "makeTests": "ts-node tests/prepare-from-openai.ts"
   },
   "keywords": [

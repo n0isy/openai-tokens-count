@@ -5,7 +5,7 @@ export default <OpenAI.Chat.ChatCompletionCreateParamsNonStreaming>{
   messages: [
     { role: "system", content: "Write OK if you understand" },
     { role: "user", content: "Hello" },
-    { role: "assistant", content: "OK"},
+    { role: "assistant", content: "OK" },
     { role: "user", content: "Write me ok" },
   ],
-}
+};

@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 
-export function formatFunctionDefinitions(tools: OpenAI.ChatCompletionTool[]): string {
+export function formatFunctionDefinitions(
+  tools: OpenAI.ChatCompletionTool[],
+): string {
   const lines: string[] = [];
   lines.push("namespace functions {");
   lines.push("");
@@ -13,7 +15,7 @@ export function formatFunctionDefinitions(tools: OpenAI.ChatCompletionTool[]): s
     const properties = p?.properties;
     if (properties && Object.keys(properties).length > 0) {
       lines.push(`type ${func?.name} = (_: {`);
-      lines.push(formatObjectProperties(p, 2));
+      lines.push(formatObjectProperties(p, 0));
       lines.push("}) => any;");
     } else {
       lines.push(`type ${func?.name} = () => any;`);
@@ -38,7 +40,9 @@ function formatObjectProperties(p: any, indent: number): string {
       lines.push(`// ${description}`);
     }
     const question = requiredParams.includes(key) ? "" : "?";
-    lines.push(`${" ".repeat(indent)}${key}${question}: ${formatType(props, indent)},`);
+    lines.push(
+      `${" ".repeat(indent)}${key}${question}: ${formatType(props, indent)},`,
+    );
   }
   return lines.join("\n");
 }
@@ -72,4 +76,3 @@ function formatType(props: any, indent: number): string {
       return "";
   }
 }
-

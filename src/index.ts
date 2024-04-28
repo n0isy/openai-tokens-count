@@ -1,19 +1,32 @@
 import OpenAI from "openai";
-import { Tiktoken, getEncoding, getEncodingNameForModel, TiktokenModel } from "js-tiktoken";
+import {
+  Tiktoken,
+  getEncoding,
+  getEncodingNameForModel,
+  TiktokenModel,
+} from "js-tiktoken";
 import { formatArguments } from "./argument-format";
 import { formatFunctionDefinitions } from "./function-format";
-import { formatToolContent, isJSONString, tryFormatJSON } from "./tool-content-format";
+import {
+  formatToolContent,
+  isJSONString,
+  tryFormatJSON,
+} from "./tool-content-format";
 
 type Message = OpenAI.Chat.ChatCompletionMessageParam;
 type Tools = Array<OpenAI.ChatCompletionTool>;
 
-function estimateTokens(request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming): number {
+function estimateTokens(
+  request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming,
+): number {
   const messages = request.messages;
   const tools = request.tools;
   const toolChoice = request.tool_choice;
   const chatModel = request.model;
 
-  const encoding = getEncoding(getEncodingNameForModel(chatModel as TiktokenModel));
+  const encoding = getEncoding(
+    getEncodingNameForModel(chatModel as TiktokenModel),
+  );
 
   let tokens = 0;
   tokens += estimateTokensInMessages(encoding, messages, tools);
@@ -49,7 +62,7 @@ function estimateTokensInTools(encoding: Tiktoken, tools: Tools): number {
 function estimateTokensInMessages(
   encoding: Tiktoken,
   messages: Message[],
-  tools?: Tools
+  tools?: Tools,
 ): number {
   let tokens = 0;
   const toolMessageSize = messages.filter((msg) => msg.role === "tool").length;
@@ -61,7 +74,7 @@ function estimateTokensInMessages(
       (msg) =>
         msg.role === "tool" &&
         typeof msg.content === "string" &&
-        isJSONString(msg.content)
+        isJSONString(msg.content),
     ).length;
 
     if (jsonContentToolSize > 0) {
@@ -92,7 +105,7 @@ function estimateTokensInMessages(
 function estimateTokensInMessage(
   encoding: Tiktoken,
   message: Message,
-  toolMessageSize: number
+  toolMessageSize: number,
 ): number {
   let tokens = 0;
 
@@ -121,7 +134,10 @@ function estimateTokensInMessage(
     }
   }
   // OpenAI bug
-  if ((message as unknown as { name: string }).name && message.role !== "tool") {
+  if (
+    (message as unknown as { name: string }).name &&
+    message.role !== "tool"
+  ) {
     tokens += countTokens(encoding, message.name) + 1; // +1 for the name
   }
 
@@ -137,7 +153,7 @@ function estimateTokensInMessage(
         if (toolCall.function.arguments) {
           tokens += countTokens(
             encoding,
-            formatArguments(toolCall.function.arguments)
+            formatArguments(toolCall.function.arguments),
           );
         }
       }
@@ -160,10 +176,7 @@ function estimateTokensInMessage(
   return tokens;
 }
 
-function countTokens(
-  encoding: Tiktoken,
-  text: string | undefined
-): number {
+function countTokens(encoding: Tiktoken, text: string | undefined): number {
   if (!text) return 0;
 
   return encoding.encode(text).length;
