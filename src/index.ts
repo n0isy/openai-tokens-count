@@ -54,7 +54,9 @@ function estimateTokens(
 }
 
 function estimateTokensInTools(encoding: Tiktoken, tools: Tools): number {
-  let tokens = countTokens(encoding, formatFunctionDefinitions(tools));
+  const definitions = formatFunctionDefinitions(tools);
+  // console.log(definitions);
+  let tokens = countTokens(encoding, definitions);
   tokens += 9; // Additional tokens for function definition of tools
   return tokens;
 }

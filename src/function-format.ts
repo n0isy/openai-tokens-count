@@ -60,9 +60,13 @@ function formatType(props: any, indent: number): string {
       return "string";
     case "array":
       if ("items" in props) {
-        return `${formatType(props.items, indent)}[]`;
+        if (props.items?.type === "object" || props.items?.type === "array") {
+          return `Array<\n${formatType(props.items, indent)}\n>`;
+        } else {
+          return `${formatType(props.items, indent)}[]`;
+        }
       }
-      return "any[]";
+      return "Array<any>";
     case "object":
       return `{\n${formatObjectProperties(props, indent + IDENT_INCREMENT)}\n${" ".repeat(indent)}}`;
     case "integer":
