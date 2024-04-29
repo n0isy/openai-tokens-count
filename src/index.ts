@@ -155,6 +155,7 @@ function estimateTokensInMessage(
           tokens += nameToken * 2;
         }
         if (toolCall.function.arguments) {
+          // console.log(JSON.stringify(formatArguments(toolCall.function.arguments)));
           tokens += countTokens(
             encoding,
             formatArguments(toolCall.function.arguments),

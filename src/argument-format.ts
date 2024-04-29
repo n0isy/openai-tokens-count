@@ -6,7 +6,7 @@ export function formatArguments(args: string): string {
   for (const fieldName in jsonObject) {
     properties.push(`"${fieldName}":${formatValue(jsonObject[fieldName])}`);
   }
-  lines.push(properties.join(",\n"));
+  lines.push(properties.join(","));
   lines.push("}");
   return lines.join("\n");
 }
@@ -15,24 +15,16 @@ function formatValue(value: unknown): string {
   if (typeof value === "string") {
     return `"${value}"`;
   } else if (typeof value === "number") {
-    return `${value}`;
+    return `"${value}"`;
   } else if (Array.isArray(value)) {
     let result = "[";
     if (value.length > 0) {
       result += value
         .map((item) => {
-          if (typeof item === "string" || typeof item === "number") {
-            return `"${item}"`;
-          } else if (typeof item === "object") {
-            if (item === null) {
+          if (item === null) {
               return "null";
-            } else if (Array.isArray(item)) {
-              return formatValue(item);
             } else {
-              return formatArguments(JSON.stringify(item));
-            }
-          } else {
-            return "null";
+            return formatValue(item);
           }
         })
         .join(",");

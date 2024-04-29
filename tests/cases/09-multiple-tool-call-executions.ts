@@ -12,7 +12,7 @@ export default <OpenAI.Chat.ChatCompletionCreateParamsNonStreaming>{
           type: "function",
           function: {
             name: "create_team",
-            arguments: '{"teamName":"Game Development Team"}',
+            arguments: '{"teamName":"Game Development Team", "description":"Team1"}',
           },
         },
         {
