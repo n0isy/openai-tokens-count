@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 
-const IDENT_DEFAULT= 0;
+const IDENT_DEFAULT = 0;
 const IDENT_INCREMENT = 0;
 
 export function formatFunctionDefinitions(

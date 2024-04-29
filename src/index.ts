@@ -67,22 +67,22 @@ function estimateTokensInMessages(
   tools?: Tools,
 ): number {
   let tokens = 0;
-  const toolMessageSize = messages.filter((msg) => msg.role === "tool").length;
-
-  if (toolMessageSize > 1) {
-    tokens += toolMessageSize * 2 + 1;
-
-    const jsonContentToolSize = messages.filter(
-      (msg) =>
-        msg.role === "tool" &&
-        typeof msg.content === "string" &&
-        isJSONString(msg.content),
-    ).length;
-
-    if (jsonContentToolSize > 0) {
-      tokens += 1 - jsonContentToolSize;
-    }
-  }
+  // const toolMessageSize = messages.filter((msg) => msg.role === "tool").length;
+  //
+  // if (toolMessageSize > 1) {
+  //   tokens += toolMessageSize * 2 + 1;
+  //
+  //   const jsonContentToolSize = messages.filter(
+  //     (msg) =>
+  //       msg.role === "tool" &&
+  //       typeof msg.content === "string" &&
+  //       isJSONString(msg.content),
+  //   ).length;
+  //
+  //   if (jsonContentToolSize > 0) {
+  //     tokens += 1 - jsonContentToolSize;
+  //   }
+  // }
 
   let paddedSystem = false;
 
@@ -96,7 +96,7 @@ function estimateTokensInMessages(
       paddedSystem = true;
     }
 
-    tokens += estimateTokensInMessage(encoding, msg, toolMessageSize);
+    tokens += estimateTokensInMessage(encoding, msg, 1);
   }
 
   tokens += 3; // Each completion (vs message) seems to carry a 3-token overhead
@@ -144,14 +144,16 @@ function estimateTokensInMessage(
   }
 
   if (message.role === "assistant" && message.tool_calls) {
+    tokens += 2;
     for (const toolCall of message.tool_calls) {
       tokens += 3;
       tokens += countTokens(encoding, toolCall.type);
 
-      if (toolCall.type === "function" && toolCall.function?.name) {
-        const nameToken = countTokens(encoding, toolCall.function.name);
-        tokens += nameToken * 2;
-
+      if (toolCall.type === "function") {
+        if (toolCall.function?.name) {
+          const nameToken = countTokens(encoding, toolCall.function.name);
+          tokens += nameToken * 2;
+        }
         if (toolCall.function.arguments) {
           tokens += countTokens(
             encoding,

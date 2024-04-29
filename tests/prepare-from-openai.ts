@@ -17,7 +17,10 @@ async function prepareFromOpenAI() {
 
       const response = await openai.chat.completions.create(testCase);
       results[file] = response.usage?.prompt_tokens || 0;
-      console.log(response.usage, JSON.stringify(response.choices?.[0]?.message));
+      console.log(
+        response.usage,
+        JSON.stringify(response.choices?.[0]?.message),
+      );
     }
   }
 

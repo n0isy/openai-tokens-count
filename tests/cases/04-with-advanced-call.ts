@@ -28,6 +28,6 @@ export default <OpenAI.Chat.ChatCompletionCreateParamsNonStreaming>{
           required: ["coords"],
         },
       },
-    }
+    },
   ],
 };

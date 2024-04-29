@@ -1,6 +1,6 @@
 {
   "name": "openai-tokens-count",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "OpenAI tokens calculator with function calls, images, and messages in one call",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
