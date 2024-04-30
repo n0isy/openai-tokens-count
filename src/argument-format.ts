@@ -13,6 +13,9 @@ export function formatArguments(args: string): string {
 
 function formatValue(value: unknown): string {
   if (typeof value === "string") {
+    let multi = value.split("\n");
+    if (multi.length>1) // idk what is actually here. But tokens are equal
+      return "```\n"+JSON.stringify(value)+"\n```";
     return `"${value}"`;
   } else if (typeof value === "number") {
     return `"${value}"`;
