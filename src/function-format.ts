@@ -11,9 +11,7 @@ export function formatFunctionDefinitions(
   lines.push("");
   for (const tool of tools) {
     const func = tool.function;
-    if (func?.description) {
-      lines.push(`// ${func.description}`);
-    }
+    func?.description?.split("\n").forEach( (row: string) => lines.push(`// ${row}`));
     const p = JSON.parse(JSON.stringify(func?.parameters));
     const properties = p?.properties;
     if (properties && Object.keys(properties).length > 0) {
@@ -38,10 +36,7 @@ function formatObjectProperties(p: any, indent: number): string {
   const lines: string[] = [];
   for (const key in properties) {
     const props = properties[key];
-    const description = props?.description;
-    if (description) {
-      lines.push(`// ${description}`);
-    }
+    props?.description?.split("\n").forEach( (row: string) => lines.push(`// ${row}`));
     const question = requiredParams.includes(key) ? "" : "?";
     lines.push(
       `${" ".repeat(indent)}${key}${question}: ${formatType(props, indent)},`,
