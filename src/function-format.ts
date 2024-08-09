@@ -7,6 +7,10 @@ export function formatFunctionDefinitions(
   tools: OpenAI.ChatCompletionTool[],
 ): string {
   const lines: string[] = [];
+  lines.push("# Tools");
+  lines.push("");
+  lines.push("## functions");
+  lines.push("");
   lines.push("namespace functions {");
   lines.push("");
   for (const tool of tools) {
@@ -24,6 +28,7 @@ export function formatFunctionDefinitions(
     lines.push("");
   }
   lines.push("} // namespace functions");
+  lines.push("");
   return lines.join("\n");
 }
 

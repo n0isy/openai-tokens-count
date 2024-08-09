@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 export default <OpenAI.Chat.ChatCompletionCreateParamsNonStreaming>{
-  model: "gpt-4-turbo",
+  model: "gpt-4o-mini",
   messages: [
     { role: "system", content: "Write OK if you understand" },
     { role: "user", content: "Hello" },

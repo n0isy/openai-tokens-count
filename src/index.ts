@@ -16,6 +16,18 @@ import {
 type Message = OpenAI.Chat.ChatCompletionMessageParam;
 type Tools = Array<OpenAI.ChatCompletionTool>;
 
+// Global cache for encoding objects
+const encodingCache = new Map<string, Tiktoken>();
+
+function getCachedEncoding(model: string): Tiktoken {
+  const encodingName = model.startsWith('gpt-4o') ? "o200k_base" : getEncodingNameForModel(model  as TiktokenModel);
+  if (!encodingCache.has(encodingName)) {
+    const encoding = getEncoding(encodingName);
+    encodingCache.set(encodingName, encoding);
+  }
+  return encodingCache.get(encodingName)!;
+}
+
 function estimateTokens(
   request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming,
 ): number {
@@ -24,9 +36,7 @@ function estimateTokens(
   const toolChoice = request.tool_choice;
   const chatModel = request.model;
 
-  const encoding = getEncoding(
-    getEncodingNameForModel(chatModel as TiktokenModel),
-  );
+  const encoding = getCachedEncoding(chatModel);
 
   let tokens = 0;
   tokens += estimateTokensInMessages(encoding, messages, tools);
@@ -57,7 +67,7 @@ function estimateTokensInTools(encoding: Tiktoken, tools: Tools): number {
   const definitions = formatFunctionDefinitions(tools);
   // console.log(definitions);
   let tokens = countTokens(encoding, definitions);
-  tokens += 9; // Additional tokens for function definition of tools
+  tokens += 2; // Additional tokens for function definition of tools
   return tokens;
 }
 
@@ -148,13 +158,12 @@ function estimateTokensInMessage(
     for (const toolCall of message.tool_calls) {
       tokens += 3;
       tokens += countTokens(encoding, toolCall.type);
-
       if (toolCall.type === "function") {
         if (toolCall.function?.name) {
           const nameToken = countTokens(encoding, toolCall.function.name);
           tokens += nameToken * 2;
         }
-        if (toolCall.function.arguments) {
+        if (toolCall.function.arguments && toolCall.function.arguments !== "{}") {
           // console.log(JSON.stringify(formatArguments(toolCall.function.arguments)));
           tokens += countTokens(
             encoding,
@@ -187,4 +196,4 @@ function countTokens(encoding: Tiktoken, text: string | undefined): number {
   return encoding.encode(text).length;
 }
 
-export { estimateTokens };
+export { estimateTokens, getCachedEncoding };
