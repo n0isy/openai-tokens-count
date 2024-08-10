@@ -4,7 +4,7 @@ const IDENT_DEFAULT = 0;
 const IDENT_INCREMENT = 0;
 
 export function formatFunctionDefinitions(
-  tools: OpenAI.ChatCompletionTool[],
+  tools: OpenAI.Chat.ChatCompletionTool[],
 ): string {
   const lines: string[] = [];
   lines.push("# Tools");

@@ -5,9 +5,12 @@ import OpenAI from "openai";
 import { formatArguments } from "./argument-format";
 import { formatFunctionDefinitions } from "./function-format";
 import { formatToolContent, tryFormatJSON } from "./tool-content-format";
+import fastJson from 'fast-json-stringify';
+import { messageSchema, schemas } from "./schemas";
 
-type Message = OpenAI.Chat.ChatCompletionMessageParam;
-type Tools = Array<OpenAI.Chat.ChatCompletionTool>;
+// Create stringifiers
+const stringifyTools = fastJson(schemas);
+const stringifyMessage = fastJson(messageSchema);
 
 // Global cache for encoding objects
 const encodingCache = new Map<string, Tiktoken>();
@@ -28,7 +31,7 @@ function getCachedEncoding(model: string): Tiktoken {
 function estimateTokens(
   request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming,
 ): number {
-  const messages = request.messages;
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = request.messages;
   const tools = request.tools;
   const toolChoice = request.tool_choice;
   const chatModel = request.model;
@@ -58,8 +61,8 @@ function estimateTokens(
   return tokens;
 }
 
-function estimateTokensInTools(chatModel: string, tools: Tools): number {
-  const toolsHash = murmurhash.v3(JSON.stringify(tools)).toString();
+function estimateTokensInTools(chatModel: string, tools: OpenAI.Chat.ChatCompletionTool[]): number {
+  const toolsHash = murmurhash.v3(stringifyTools(tools)).toString();
   const cacheKey = `${chatModel}-${toolsHash}`;
 
   if (toolTokenCache.has(cacheKey)) {
@@ -76,8 +79,8 @@ function estimateTokensInTools(chatModel: string, tools: Tools): number {
 
 function estimateTokensInMessages(
   chatModel: string,
-  messages: Message[],
-  tools?: Tools,
+  messages: OpenAI.Chat.ChatCompletionMessageParam[],
+  tools?: OpenAI.Chat.ChatCompletionTool[],
 ): number {
   let tokens = 0;
 
@@ -103,10 +106,10 @@ function estimateTokensInMessages(
 
 function estimateTokensInMessage(
   chatModel: string,
-  message: Message,
+  message: OpenAI.Chat.ChatCompletionMessageParam,
   toolMessageSize: number,
 ): number {
-  const messageHash = murmurhash.v3(JSON.stringify(message)).toString();
+  const messageHash = murmurhash.v3(stringifyMessage(message)).toString();
   const cacheKey = `${chatModel}-${messageHash}`;
 
   if (messageTokenCache.has(cacheKey)) {
