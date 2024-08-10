@@ -64,8 +64,8 @@ const originalMessages = [
       }],
     }, { "role": "tool", "content": "5050", "tool_call_id": "call_taVzoK0TXghuCP34CiXvQnaY" }];
 
-// Repeat the messages array 100 times
-const repeatedMessages = Array(100).fill(originalMessages).flat();
+// Repeat the messages array 10000 times
+const repeatedMessages = Array(10000).fill(originalMessages).flat();
 
 export default <OpenAI.Chat.ChatCompletionCreateParamsNonStreaming>{
   model: "gpt-4o",
