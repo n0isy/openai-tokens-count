@@ -1,6 +1,6 @@
 {
   "name": "openai-tokens-count",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "OpenAI tokens calculator with function calls, images, and messages in one call",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -37,7 +37,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "js-tiktoken": "^1.0.12"
+    "js-tiktoken": "^1.0.12",
+    "lru-cache": "^10.4.3",
+    "murmurhash": "^2.0.1"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import OpenAI from "openai";
-import { estimateTokens, getCachedEncoding } from "../src";
+import { estimateTokens, getCachedEncoding, messageTokenCache, toolTokenCache } from "../src";
 
 const tokensJsonPath = path.join(__dirname, "tokens.json");
 const tokens: Record<string, number> = JSON.parse(
@@ -30,7 +30,7 @@ describe.each(Object.entries(tokens))("Testing %s", (file, expectedTokens) => {
     }
 
     const averageTime = times.reduce((a, b) => a + b, 0) / times.length;
-    console.log(`Run: ${times.map( el => el.toFixed(3)).join(" ")} ms / Average time: ${averageTime.toFixed(3)} ms.`);
+    console.log(`Run: ${times.map( el => el.toFixed(3)).join(" ")} ms \ Average time: ${averageTime.toFixed(3)} ms. \ Messages in cache: ${messageTokenCache.size} \ ${toolTokenCache.size}`);
     if (expectedTokens) {
       expect(estimatedTokens).toBe(expectedTokens);
     }

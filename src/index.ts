@@ -1,26 +1,23 @@
+import { getEncoding, getEncodingNameForModel, Tiktoken, TiktokenModel } from "js-tiktoken";
+import { LRUCache } from "lru-cache";
+import murmurhash from "murmurhash";
 import OpenAI from "openai";
-import {
-  Tiktoken,
-  getEncoding,
-  getEncodingNameForModel,
-  TiktokenModel,
-} from "js-tiktoken";
 import { formatArguments } from "./argument-format";
 import { formatFunctionDefinitions } from "./function-format";
-import {
-  formatToolContent,
-  isJSONString,
-  tryFormatJSON,
-} from "./tool-content-format";
+import { formatToolContent, tryFormatJSON } from "./tool-content-format";
 
 type Message = OpenAI.Chat.ChatCompletionMessageParam;
-type Tools = Array<OpenAI.ChatCompletionTool>;
+type Tools = Array<OpenAI.Chat.ChatCompletionTool>;
 
 // Global cache for encoding objects
 const encodingCache = new Map<string, Tiktoken>();
 
+// Global caches for token counts
+const messageTokenCache = new LRUCache<string, number>({ max: 1000000 });
+const toolTokenCache = new LRUCache<string, number>({ max: 1000000 });
+
 function getCachedEncoding(model: string): Tiktoken {
-  const encodingName = model.startsWith('gpt-4o') ? "o200k_base" : getEncodingNameForModel(model  as TiktokenModel);
+  const encodingName = model.startsWith('gpt-4o') ? "o200k_base" : getEncodingNameForModel(model as TiktokenModel);
   if (!encodingCache.has(encodingName)) {
     const encoding = getEncoding(encodingName);
     encodingCache.set(encodingName, encoding);
@@ -36,13 +33,11 @@ function estimateTokens(
   const toolChoice = request.tool_choice;
   const chatModel = request.model;
 
-  const encoding = getCachedEncoding(chatModel);
-
   let tokens = 0;
-  tokens += estimateTokensInMessages(encoding, messages, tools);
+  tokens += estimateTokensInMessages(chatModel, messages, tools);
 
   if (tools) {
-    tokens += estimateTokensInTools(encoding, tools);
+    tokens += estimateTokensInTools(chatModel, tools);
   }
 
   if (tools && messages.some((msg) => msg.role === "system")) {
@@ -55,7 +50,7 @@ function estimateTokens(
     } else if (typeof toolChoice === "object") {
       const tc = toolChoice as OpenAI.Chat.ChatCompletionNamedToolChoice;
       if (tc.function?.name) {
-        tokens += countTokens(encoding, tc.function.name) + 4;
+        tokens += countTokens(getCachedEncoding(chatModel), tc.function.name) + 4;
       }
     }
   }
@@ -63,36 +58,28 @@ function estimateTokens(
   return tokens;
 }
 
-function estimateTokensInTools(encoding: Tiktoken, tools: Tools): number {
+function estimateTokensInTools(chatModel: string, tools: Tools): number {
+  const toolsHash = murmurhash.v3(JSON.stringify(tools)).toString();
+  const cacheKey = `${chatModel}-${toolsHash}`;
+
+  if (toolTokenCache.has(cacheKey)) {
+    return toolTokenCache.get(cacheKey)!;
+  }
+
   const definitions = formatFunctionDefinitions(tools);
-  // console.log(definitions);
-  let tokens = countTokens(encoding, definitions);
+  let tokens = countTokens(getCachedEncoding(chatModel), definitions);
   tokens += 2; // Additional tokens for function definition of tools
+
+  toolTokenCache.set(cacheKey, tokens);
   return tokens;
 }
 
 function estimateTokensInMessages(
-  encoding: Tiktoken,
+  chatModel: string,
   messages: Message[],
   tools?: Tools,
 ): number {
   let tokens = 0;
-  // const toolMessageSize = messages.filter((msg) => msg.role === "tool").length;
-  //
-  // if (toolMessageSize > 1) {
-  //   tokens += toolMessageSize * 2 + 1;
-  //
-  //   const jsonContentToolSize = messages.filter(
-  //     (msg) =>
-  //       msg.role === "tool" &&
-  //       typeof msg.content === "string" &&
-  //       isJSONString(msg.content),
-  //   ).length;
-  //
-  //   if (jsonContentToolSize > 0) {
-  //     tokens += 1 - jsonContentToolSize;
-  //   }
-  // }
 
   let paddedSystem = false;
 
@@ -106,7 +93,7 @@ function estimateTokensInMessages(
       paddedSystem = true;
     }
 
-    tokens += estimateTokensInMessage(encoding, msg, 1);
+    tokens += estimateTokensInMessage(chatModel, msg, 1);
   }
 
   tokens += 3; // Each completion (vs message) seems to carry a 3-token overhead
@@ -115,12 +102,19 @@ function estimateTokensInMessages(
 }
 
 function estimateTokensInMessage(
-  encoding: Tiktoken,
+  chatModel: string,
   message: Message,
   toolMessageSize: number,
 ): number {
-  let tokens = 0;
+  const messageHash = murmurhash.v3(JSON.stringify(message)).toString();
+  const cacheKey = `${chatModel}-${messageHash}`;
 
+  if (messageTokenCache.has(cacheKey)) {
+    return messageTokenCache.get(cacheKey)!;
+  }
+
+  let tokens = 0;
+  const encoding = getCachedEncoding(chatModel);
   tokens += countTokens(encoding, message.role);
 
   if (message.role === "tool") {
@@ -187,6 +181,7 @@ function estimateTokensInMessage(
     tokens += 3; // Add three per message
   }
 
+  messageTokenCache.set(cacheKey, tokens);
   return tokens;
 }
 
@@ -196,4 +191,4 @@ function countTokens(encoding: Tiktoken, text: string | undefined): number {
   return encoding.encode(text).length;
 }
 
-export { estimateTokens, getCachedEncoding };
+export { estimateTokens, getCachedEncoding, estimateTokensInMessages, estimateTokensInTools, messageTokenCache, toolTokenCache };
