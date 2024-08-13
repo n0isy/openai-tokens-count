@@ -40,7 +40,8 @@
     "fast-json-stringify": "^6.0.0",
     "js-tiktoken": "^1.0.12",
     "lru-cache": "^10.4.3",
-    "murmurhash": "^2.0.1"
+    "murmurhash": "^2.0.1",
+    "sharp": "^0.33.4"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

@@ -7,6 +7,8 @@ import { formatFunctionDefinitions } from "./function-format";
 import { formatToolContent, tryFormatJSON } from "./tool-content-format";
 import fastJson from 'fast-json-stringify';
 import { messageSchema, schemas } from "./schemas";
+import sharp from "sharp";
+import { fixedPrice, gpt4oMiniRatio, longSideLimit, shortSideLimit, tilePrice, tileSize } from "./vision-constants";
 
 // Create stringifiers
 const stringifyTools = fastJson(schemas);
@@ -28,16 +30,16 @@ function getCachedEncoding(model: string): Tiktoken {
   return encodingCache.get(encodingName)!;
 }
 
-function estimateTokens(
+async function estimateTokens(
   request: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming,
-): number {
+): Promise<number> {
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = request.messages;
   const tools = request.tools;
   const toolChoice = request.tool_choice;
   const chatModel = request.model;
 
   let tokens = 0;
-  tokens += estimateTokensInMessages(chatModel, messages, tools);
+  tokens += await estimateTokensInMessages(chatModel, messages, tools);
 
   if (tools) {
     tokens += estimateTokensInTools(chatModel, tools);
@@ -77,11 +79,11 @@ function estimateTokensInTools(chatModel: string, tools: OpenAI.Chat.ChatComplet
   return tokens;
 }
 
-function estimateTokensInMessages(
+async function estimateTokensInMessages(
   chatModel: string,
   messages: OpenAI.Chat.ChatCompletionMessageParam[],
   tools?: OpenAI.Chat.ChatCompletionTool[],
-): number {
+): Promise<number> {
   let tokens = 0;
 
   let paddedSystem = false;
@@ -96,7 +98,7 @@ function estimateTokensInMessages(
       paddedSystem = true;
     }
 
-    tokens += estimateTokensInMessage(chatModel, msg, 1);
+    tokens += await estimateTokensInMessage(chatModel, msg, 1);
   }
 
   tokens += 3; // Each completion (vs message) seems to carry a 3-token overhead
@@ -104,11 +106,11 @@ function estimateTokensInMessages(
   return tokens;
 }
 
-function estimateTokensInMessage(
+async function estimateTokensInMessage(
   chatModel: string,
   message: OpenAI.Chat.ChatCompletionMessageParam,
   toolMessageSize: number,
-): number {
+): Promise<number> {
   const messageHash = murmurhash.v3(stringifyMessage(message)).toString();
   const cacheKey = `${chatModel}-${messageHash}`;
 
@@ -137,8 +139,7 @@ function estimateTokensInMessage(
       if (item.type === "text") {
         tokens += countTokens(encoding, item.text);
       } else if (item.type === "image_url") {
-        // TODO: Estimate tokens for image URL based on detail level
-        // ...
+        tokens += await countImageTokens(item, chatModel);
       }
     }
   }
@@ -192,6 +193,69 @@ function countTokens(encoding: Tiktoken, text: string | undefined): number {
   if (!text) return 0;
 
   return encoding.encode(text).length;
+}
+
+async function countImageTokens(contentPart: OpenAI.Chat.ChatCompletionContentPartImage, chatModel: string): Promise<number> {
+  const visionRatio = (chatModel !== 'gpt-4o-mini') ? 1 : gpt4oMiniRatio;
+
+  let tokens = fixedPrice;
+  
+  const detail = contentPart.image_url.detail;
+
+  if (detail === 'low') {    
+    return Math.floor(tokens * visionRatio);
+  }
+
+  const url = contentPart.image_url.url;
+  const { width, height } = await getImageSize(url);
+
+  const longSide = Math.max(width, height);
+  const scaleFactor1 = (longSide > longSideLimit) ? longSide / longSideLimit : 1;
+
+  const shortSide = Math.min(width, height);
+  const scaleFactor2 = (shortSide / scaleFactor1 > shortSideLimit) 
+    ? (shortSide / scaleFactor1) / shortSideLimit : 1;
+
+  const scaleFactor = scaleFactor1 * scaleFactor2;
+  
+  const scaledWidth = Math.floor(width / scaleFactor);
+  const scaledHeight = Math.floor(height / scaleFactor);
+
+  const tilesCount = Math.ceil(scaledWidth / tileSize) * Math.ceil(scaledHeight / tileSize);
+
+  tokens += tilesCount * tilePrice;
+
+  return Math.floor(tokens * visionRatio);
+}
+
+async function getImageSize(url: string): Promise<{width: number, height: number}> {
+  let imageBuffer;
+
+  if (url.startsWith('data:')) {
+    const uri = url.split(';base64,').pop() as string;
+    imageBuffer = Buffer.from(uri, 'base64');
+  }
+
+  if (url.startsWith('https:') || url.startsWith('http:')) {
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    imageBuffer = Buffer.from(arrayBuffer);
+  }
+
+  if (!imageBuffer) {
+    throw new Error('imageBuffer is not defined');
+  }
+
+  const image = sharp(imageBuffer);
+  const metadata = await image.metadata();
+
+  const { width, height } = metadata;
+
+  if (!width || !height) {
+    throw new Error('unprocessable image - no size availble');
+  }
+
+  return { width, height };
 }
 
 export { estimateTokens, getCachedEncoding, estimateTokensInMessages, estimateTokensInTools, messageTokenCache, toolTokenCache };
