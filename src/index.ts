@@ -8,7 +8,7 @@ import { formatToolContent, tryFormatJSON } from "./tool-content-format";
 import fastJson from 'fast-json-stringify';
 import { messageSchema, schemas } from "./schemas";
 import sharp from "sharp";
-import { fixedPrice, gpt4oMiniRatio, longSideLimit, shortSideLimit, tilePrice, tileSize } from "./vision-constants";
+import { getFixedPrice, getTilePrice, longSideLimit, shortSideLimit, tileSize } from "./vision-constants";
 
 // Create stringifiers
 const stringifyTools = fastJson(schemas);
@@ -138,7 +138,7 @@ async function estimateTokensInMessage(
     for (const item of message.content) {
       if (item.type === "text") {
         tokens += countTokens(encoding, item.text);
-      } else if (item.type === "image_url") {
+      } else if (item.type === "image_url" && item.image_url) {
         tokens += await countImageTokens(item, chatModel);
       }
     }
@@ -196,18 +196,11 @@ function countTokens(encoding: Tiktoken, text: string | undefined): number {
 }
 
 async function countImageTokens(contentPart: OpenAI.Chat.ChatCompletionContentPartImage, chatModel: string): Promise<number> {
-  const visionRatio = (chatModel !== 'gpt-4o-mini') ? 1 : gpt4oMiniRatio;
-
-  let tokens = fixedPrice;
-  
-  const detail = contentPart.image_url.detail;
-
-  if (detail === 'low') {    
-    return Math.floor(tokens * visionRatio);
+  if (contentPart.image_url?.detail === 'low') {    
+    return getFixedPrice(chatModel);
   }
 
-  const url = contentPart.image_url.url;
-  const { width, height } = await getImageSize(url);
+  const { width, height } = await getImageSize(contentPart.image_url?.url);
 
   const longSide = Math.max(width, height);
   const scaleFactor1 = (longSide > longSideLimit) ? longSide / longSideLimit : 1;
@@ -223,9 +216,7 @@ async function countImageTokens(contentPart: OpenAI.Chat.ChatCompletionContentPa
 
   const tilesCount = Math.ceil(scaledWidth / tileSize) * Math.ceil(scaledHeight / tileSize);
 
-  tokens += tilesCount * tilePrice;
-
-  return Math.floor(tokens * visionRatio);
+  return getFixedPrice(chatModel) + tilesCount * getTilePrice(chatModel);;
 }
 
 async function getImageSize(url: string): Promise<{width: number, height: number}> {
