@@ -26,8 +26,12 @@ const message: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
   messages: [{ role: 'user', content: 'Hello' }],
 };
 
-const estimatedTokens = estimateTokens(message);
-console.log('Estimated tokens:', estimatedTokens);
+const run = async () => {
+  const estimatedTokens = await estimateTokens(message);
+  console.log('Estimated tokens:', estimatedTokens);
+}
+
+run();
 ```
 
 The function returns the estimated token count for the given input.
