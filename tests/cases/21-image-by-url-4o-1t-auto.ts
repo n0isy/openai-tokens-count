@@ -13,7 +13,7 @@ export default <OpenAI.Chat.ChatCompletionCreateParamsNonStreaming>{
         {
           "type": "image_url",
           "image_url": {
-            "url": "https://raw.githubusercontent.com/n0isy/openai-tokens-count/images-input/tests/__fixtures__/1t-512x512.png",
+            "url": "https://raw.githubusercontent.com/n0isy/openai-tokens-count/master/tests/__fixtures__/1t-512x512.png",
             "detail": "auto"
           }          
         },

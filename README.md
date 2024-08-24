@@ -36,6 +36,95 @@ run();
 
 The function returns the estimated token count for the given input.
 
+## Advanced Usage
+
+For a more complex scenario, including multiple messages, tool calls, and various parameters, you can use the following example:
+
+```typescript
+import { estimateTokens } from 'openai-tokens-count';
+import OpenAI from "openai"; // for typings
+
+const advancedMessage: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
+  model: "gpt-4-turbo",
+  messages: [
+    { role: "system", content: "You are a weather predictor" },
+    { role: "user", content: "Hello! How cloudy is it in London?" },
+    {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          id: "call_w3cN5nYrqIbu6HLm7tYMP2OZ",
+          type: "function",
+          function: {
+            name: "get_current_weather_by_coords",
+            arguments: `{
+              "coords": {
+                "lat": "51.5074",
+                "long": "-0.1278"
+              },
+              "unit": "celsius"
+            }`
+          }
+        }
+      ]
+    },
+    {
+      role: "tool",
+      content: '{ "temperature": 15, "condition": "cloudy" }',
+      tool_call_id: "call_w3cN5nYrqIbu6HLm7tYMP2OZ",
+    },
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: "What’s in this image?"
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: "https://raw.githubusercontent.com/n0isy/openai-tokens-count/master/tests/__fixtures__/1t-512x512.png",
+            detail: "high"
+          }
+        }
+      ],
+    }
+  ],
+  tools: [
+    {
+      type: "function",
+      function: {
+        name: "get_current_weather_by_coords",
+        description: "Get the current weather by coordinates",
+        parameters: {
+          type: "object",
+          properties: {
+            coords: {
+              type: "object",
+              description: "(lat, long)",
+              properties: {
+                lat: { type: "string", description: "latitude" },
+                long: { type: "string", description: "longitude" },
+              },
+            },
+            unit: { type: "string", enum: ["celsius", "fahrenheit"] },
+          },
+          required: ["coords"],
+        },
+      },
+    }
+  ],
+};
+
+const runAdvanced = async () => {
+  const estimatedTokens = await estimateTokens(advancedMessage);
+  console.log('Estimated tokens for advanced message:', estimatedTokens);
+}
+
+runAdvanced();
+```
+
 ## Testing
 
 To run the tests, use the following command:
