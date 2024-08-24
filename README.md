@@ -38,7 +38,7 @@ The function returns the estimated token count for the given input.
 
 ## Advanced Usage
 
-For a more complex scenario, including multiple messages, tool calls, and various parameters, you can use the following example:
+For a more complex scenario, including multiple messages, tool calls, various parameters, and image estimation, you can use the following example:
 
 ```typescript
 import { estimateTokens } from 'openai-tokens-count';
