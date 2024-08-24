@@ -13,7 +13,7 @@ describe.each(Object.entries(tokens))("Testing %s", (file, expectedTokens) => {
   const testCase: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming =
     require(casePath).default;
 
-  test(`Expected: ${expectedTokens}`, () => {
+  test(`Expected: ${expectedTokens}`, async () => {
     getCachedEncoding(testCase.model);
 
     const numRuns = 10; // Number of times to run the function
@@ -21,7 +21,7 @@ describe.each(Object.entries(tokens))("Testing %s", (file, expectedTokens) => {
     let estimatedTokens;
     for (let i = 0; i < numRuns; i++) {
       const startTime = process.hrtime();
-      estimatedTokens = estimateTokens(testCase);
+      estimatedTokens = await estimateTokens(testCase);
       const endTime = process.hrtime(startTime);
       const elapsedTime = endTime[0] * 1000 + endTime[1] / 1e6; // Convert to milliseconds
       times.push(elapsedTime);
