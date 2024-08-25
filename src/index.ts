@@ -5,14 +5,15 @@ import OpenAI from "openai";
 import { formatArguments } from "./argument-format";
 import { formatFunctionDefinitions } from "./function-format";
 import { formatToolContent, tryFormatJSON } from "./tool-content-format";
-import fastJson from 'fast-json-stringify';
-import { messageSchema, schemas } from "./schemas";
 import sharp from "sharp";
 import { getFixedPrice, getTilePrice, longSideLimit, shortSideLimit, tileSize } from "./vision-constants";
 
 // Create stringifiers
-const stringifyTools = fastJson(schemas);
-const stringifyMessage = fastJson(messageSchema);
+const stringifyTools = JSON.stringify;
+const stringifyMessage = JSON.stringify;
+const stringifyImage = JSON.stringify;
+const HASH = (str: string): string => murmurhash.v3(str).toString(16);
+const HASHKEY = (model: string, str: string): string => `${model}-${HASH(str)}`;
 
 // Global cache for encoding objects
 const encodingCache = new Map<string, Tiktoken>();
@@ -20,6 +21,7 @@ const encodingCache = new Map<string, Tiktoken>();
 // Global caches for token counts
 const messageTokenCache = new LRUCache<string, number>({ max: 1000000 });
 const toolTokenCache = new LRUCache<string, number>({ max: 1000000 });
+const imageTokenCache = new LRUCache<string, number>({ max: 1000000 });
 
 function getCachedEncoding(model: string): Tiktoken {
   const encodingName = model.startsWith('gpt-4o') ? "o200k_base" : getEncodingNameForModel(model as TiktokenModel);
@@ -64,8 +66,7 @@ async function estimateTokens(
 }
 
 function estimateTokensInTools(chatModel: string, tools: OpenAI.Chat.ChatCompletionTool[]): number {
-  const toolsHash = murmurhash.v3(stringifyTools(tools)).toString();
-  const cacheKey = `${chatModel}-${toolsHash}`;
+  const cacheKey = HASHKEY(chatModel,stringifyTools(tools));
 
   if (toolTokenCache.has(cacheKey)) {
     return toolTokenCache.get(cacheKey)!;
@@ -111,8 +112,8 @@ async function estimateTokensInMessage(
   message: OpenAI.Chat.ChatCompletionMessageParam,
   toolMessageSize: number,
 ): Promise<number> {
-  const messageHash = murmurhash.v3(stringifyMessage(message)).toString();
-  const cacheKey = `${chatModel}-${messageHash}`;
+
+  const cacheKey = HASHKEY(chatModel,stringifyMessage(message));
 
   if (messageTokenCache.has(cacheKey)) {
     return messageTokenCache.get(cacheKey)!;
@@ -199,6 +200,11 @@ async function countImageTokens(contentPart: OpenAI.Chat.ChatCompletionContentPa
   if (contentPart.image_url?.detail === 'low') {    
     return getFixedPrice(chatModel);
   }
+  const cacheKey = HASHKEY(chatModel,stringifyImage(contentPart.image_url));
+
+  if (imageTokenCache.has(cacheKey)) {
+    return imageTokenCache.get(cacheKey)!;
+  }
 
   const { width, height } = await getImageSize(contentPart.image_url?.url);
 
@@ -216,7 +222,9 @@ async function countImageTokens(contentPart: OpenAI.Chat.ChatCompletionContentPa
 
   const tilesCount = Math.ceil(scaledWidth / tileSize) * Math.ceil(scaledHeight / tileSize);
 
-  return getFixedPrice(chatModel) + tilesCount * getTilePrice(chatModel);;
+  const tokens = getFixedPrice(chatModel) + tilesCount * getTilePrice(chatModel);
+  imageTokenCache.set(cacheKey, tokens);
+  return tokens;
 }
 
 async function getImageSize(url: string): Promise<{width: number, height: number}> {
@@ -243,10 +251,10 @@ async function getImageSize(url: string): Promise<{width: number, height: number
   const { width, height } = metadata;
 
   if (!width || !height) {
-    throw new Error('unprocessable image - no size availble');
+    throw new Error('unprocessable image - no size available');
   }
 
   return { width, height };
 }
 
-export { estimateTokens, getCachedEncoding, estimateTokensInMessages, estimateTokensInTools, messageTokenCache, toolTokenCache };
+export { estimateTokens, getCachedEncoding, estimateTokensInMessages, estimateTokensInTools, messageTokenCache, toolTokenCache, imageTokenCache };
